@@ -1,0 +1,7 @@
+interface:
+  display_name: "中国量化基本面研究"
+  short_description: "融合基本面、量化证据、反方研究与风险检查的中国资产研究工作流"
+  default_prompt: "使用 $china-quant-research 分析我提供的证券数据，建立 Thesis、寻找反方证据、完成风险检查并输出报告。"
+
+policy:
+  allow_implicit_invocation: true
