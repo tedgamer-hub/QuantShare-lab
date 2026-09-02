@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>布朗运动与随机游走 · 交互可视化</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c0f14;
+      --surface: #151a22;
+      --surface2: #1c2330;
+      --border: #2a3344;
+      --text: #e8ecf4;
+      --muted: #8b95a8;
+      --accent: #3d9cf5;
+      --accent2: #2dd4a8;
+      --math: #7c9cff;
+      --quant: #f0b429;
+      --danger: #f07178;
+      --radius: 12px;
+      --font: "IBM Plex Sans", system-ui, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.55;
+    }
+
+    .shell {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 20px 40px;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand h1 {
+      font-size: 1.45rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .brand p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 6px;
+      max-width: 520px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      background: var(--surface);
+      padding: 5px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    .tab {
+      font-family: var(--font);
+      font-size: 0.88rem;
+      font-weight: 500;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .tab:hover { color: var(--text); }
+
+    .tab.active-math {
+      background: rgba(124, 156, 255, 0.18);
+      color: var(--math);
+    }
+
+    .tab.active-quant {
+      background: rgba(240, 180, 41, 0.15);
+      color: var(--quant);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 340px) 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .panel-body { padding: 18px; }
+
+    .explain h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .explain p, .explain li {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .explain ul {
+      padding-left: 18px;
+      margin-bottom: 14px;
+    }
+
+    .formula {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: var(--text);
+      margin: 12px 0;
+      line-height: 1.7;
+    }
+
+    .formula .dim { color: var(--muted); }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .stat {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .stat label {
+      display: block;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .stat span {
+      font-family: var(--mono);
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .viz-wrap {
+      display: flex;
+      flex-direction: column;
+      min-height: 520px;
+    }
+
+    .viz-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .btn {
+      font-family: var(--font);
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    .btn:hover { border-color: var(--accent); }
+
+    .btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0a0e12;
+    }
+
+    .btn.primary:hover { filter: brightness(1.08); }
+
+    .ctrl {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .ctrl input[type="range"] {
+      width: 100px;
+      accent-color: var(--accent);
+    }
+
+    .ctrl input[type="number"] {
+      width: 52px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .canvas-box {
+      flex: 1;
+      position: relative;
+      min-height: 400px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .legend-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 10px 16px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 3px;
+      border-radius: 2px;
+    }
+
+    .progress {
+      height: 3px;
+      background: var(--border);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.05s linear;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .badge.math { background: rgba(124, 156, 255, 0.2); color: var(--math); }
+    .badge.quant { background: rgba(240, 180, 41, 0.18); color: var(--quant); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <h1>布朗运动与随机游走</h1>
+        <p>Quant-for-Beginners 配套交互演示 · 从数学直觉到股价随机游走</p>
+      </div>
+      <nav class="tabs" role="tablist">
+        <button type="button" class="tab active-math" id="tab-math" role="tab" aria-selected="true">数学 · 布朗运动</button>
+        <button type="button" class="tab" id="tab-quant" role="tab" aria-selected="false">量化金融 · 股价路径</button>
+      </nav>
+    </header>
+
+    <div class="layout">
+      <aside class="panel explain" id="sidebar-math">
+        <div class="panel-head">概念说明</div>
+        <div class="panel-body">
+          <span class="badge math">Mathematics</span>
+          <h2>什么是随机游走？</h2>
+          <p>想象站在数轴原点，抛硬币决定每一步向左或向右。走过的轨迹就是<strong>随机游走</strong>。</p>
+          <p>把步长改得很小、步数很多，极限情况下就接近<strong>布朗运动</strong>（连续时间的随机过程）。</p>
+          <div class="formula">
+            离散：<span class="dim">W</span><sub>t</sub> = <span class="dim">W</span><sub>t-1</sub> + ε<sub>t</sub><br />
+            连续近似：<span class="dim">ΔW</span> = σ√<span class="dim">Δt</span> · Z，Z ~ N(0,1)
+          </div>
+          <ul>
+            <li>每一步完全不可预测</li>
+            <li>路径连续但处处「锯齿」</li>
+            <li>方差随时间线性增长</li>
+          </ul>
+          <div class="stat-grid">
+            <div class="stat"><label>当前步数 t</label><span id="math-step">0</span></div>
+            <div class="stat"><label>位置 W(t)</label><span id="math-pos">0.00</span></div>
+          </div>
+        </div>
+      </aside>
+
+      <aside class="panel explain hidden" id="sidebar-quant">
+        <div class="panel-head">概念说明</div>
+        <div class="panel-body">
+          <span class="badge quant">Quantitative Finance</span>
+          <h2>股价为何像随机游走？</h2>
+          <p>1900 年巴舍利耶提出：短期股价波动可用布朗运动描述——<strong>不可预测但并非没有统计规律</strong>。</p>
+          <div class="formula">
+            日收益模型：<span class="dim">r</span><sub>t</sub> ~ N(μ, σ²)<br />
+            价格：<span class="dim">S</span><sub>t</sub> = <span class="dim">S</span><sub>t-1</sub> · (1 + <span class="dim">r</span><sub>t</sub>)
+          </div>
+          <ul>
+            <li>左图：多只虚拟股票路径（随机游走）</li>
+            <li>右图：一年后终点价格的分布</li>
+            <li>单条路径无法预测，大量路径呈现统计规律</li>
+          </ul>
+          <div class="stat-grid">
+            <div class="stat"><label>交易日</label><span id="quant-step">0</span></div>
+            <div class="stat"><label>路径数量</label><span id="quant-n">50</span></div>
+            <div class="stat"><label>平均终点价</label><span id="quant-mean">—</span></div>
+            <div class="stat"><label>价格标准差</label><span id="quant-std">—</span></div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="panel viz-wrap">
+        <div class="progress"><div class="progress-fill" id="progress"></div></div>
+        <div class="viz-toolbar">
+          <button type="button" class="btn primary" id="btn-play">播放</button>
+          <button type="button" class="btn" id="btn-pause">暂停</button>
+          <button type="button" class="btn" id="btn-step">单步</button>
+          <button type="button" class="btn" id="btn-reset">重置</button>
+          <label class="ctrl">
+            速度
+            <input type="range" id="speed" min="1" max="30" value="12" />
+          </label>
+          <label class="ctrl hidden" id="ctrl-paths">
+            路径数
+            <input type="number" id="n-paths" min="5" max="80" value="40" />
+          </label>
+          <label class="ctrl" id="ctrl-steps">
+            总步数
+            <input type="number" id="n-steps" min="50" max="500" value="250" />
+          </label>
+        </div>
+        <div class="canvas-box">
+          <canvas id="main-canvas"></canvas>
+        </div>
+        <div class="legend-bar" id="legend-math">
+          <span class="legend-item"><span class="swatch" style="background:#7c9cff"></span> 布朗运动路径 W(t)</span>
+          <span class="legend-item"><span class="swatch" style="background:#8b95a8"></span> 零轴参考线</span>
+          <span class="legend-item">动画：离散随机游走 → 连续布朗运动近似</span>
+        </div>
+        <div class="legend-bar hidden" id="legend-quant">
+          <span class="legend-item"><span class="swatch" style="background:#3d9cf5;opacity:0.5"></span> 虚拟股票路径</span>
+          <span class="legend-item"><span class="swatch" style="background:#f0b429"></span> 终点价分布（直方图）</span>
+          <span class="legend-item"><span class="swatch" style="background:#f07178"></span> 起始价 100 元</span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const canvas = document.getElementById("main-canvas");
+      const ctx = canvas.getContext("2d");
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      let mode = "math";
+      let playing = false;
+      let frameId = null;
+      let lastTs = 0;
+      let accum = 0;
+
+      const speedEl = document.getElementById("speed");
+      const stepsEl = document.getElementById("n-steps");
+      const pathsEl = document.getElementById("n-paths");
+      const progressEl = document.getElementById("progress");
+
+      const tabMath = document.getElementById("tab-math");
+      const tabQuant = document.getElementById("tab-quant");
+      const sidebarMath = document.getElementById("sidebar-math");
+      const sidebarQuant = document.getElementById("sidebar-quant");
+      const legendMath = document.getElementById("legend-math");
+      const legendQuant = document.getElementById("legend-quant");
+      const ctrlPaths = document.getElementById("ctrl-paths");
+
+      function resize() {
+        const box = canvas.parentElement;
+        const w = box.clientWidth;
+        const h = Math.max(400, box.clientHeight);
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+      }
+
+      window.addEventListener("resize", resize);
+
+      /* ---------- Math: 1D Brownian / random walk ---------- */
+      let mathState = { t: 0, path: [0], maxSteps: 400 };
+
+      function resetMath() {
+        mathState.t = 0;
+        mathState.path = [0];
+        mathState.maxSteps = parseInt(stepsEl.value, 10) || 400;
+        updateMathStats();
+      }
+
+      function stepMath() {
+        if (mathState.t >= mathState.maxSteps) return false;
+        const dt = 1;
+        const sigma = 0.4;
+        const z = randn();
+        const dw = sigma * Math.sqrt(dt) * z;
+        const prev = mathState.path[mathState.path.length - 1];
+        mathState.path.push(prev + dw);
+        mathState.t++;
+        updateMathStats();
+        return mathState.t < mathState.maxSteps;
+      }
+
+      function updateMathStats() {
+        document.getElementById("math-step").textContent = mathState.t;
+        const w = mathState.path[mathState.path.length - 1];
+        document.getElementById("math-pos").textContent = w.toFixed(2);
+        progressEl.style.width = (100 * mathState.t / mathState.maxSteps) + "%";
+      }
+
+      function drawMath() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.fillStyle = "#0c0f14";
+        ctx.fillRect(0, 0, w, h);
+
+        const pad = { l: 48, r: 24, t: 28, b: 44 };
+        const plotW = w - pad.l - pad.r;
+        const plotH = h - pad.t - pad.b;
+
+        const path = mathState.path;
+        const tMax = mathState.maxSteps;
+        let wMin = Math.min(...path, -2);
+        let wMax = Math.max(...path, 2);
+        const margin = 0.15 * (wMax - wMin + 1);
+        wMin -= margin;
+        wMax += margin;
+
+        const x = (ti) => pad.l + (ti / tMax) * plotW;
+        const y = (val) => pad.t + plotH - ((val - wMin) / (wMax - wMin)) * plotH;
+
+        ctx.strokeStyle = "#2a3344";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(pad.l, y(0));
+        ctx.lineTo(pad.l + plotW, y(0));
+        ctx.stroke();
+
+        ctx.fillStyle = "#8b95a8";
+        ctx.font = "11px IBM Plex Sans, sans-serif";
+        ctx.fillText("W(t)", 8, pad.t + 12);
+        ctx.fillText("t →", w - 36, h - 14);
+
+        if (path.length > 1) {
+          ctx.strokeStyle = "#7c9cff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x(0), y(path[0]));
+          for (let i = 1; i < path.length; i++) {
+            ctx.lineTo(x(i), y(path[i]));
+          }
+          ctx.stroke();
+
+          const last = path.length - 1;
+          ctx.fillStyle = "#7c9cff";
+          ctx.beginPath();
+          ctx.arc(x(last), y(path[last]), 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = "#e8ecf4";
+        ctx.font = "600 13px IBM Plex Sans, sans-serif";
+        ctx.fillText("一维布朗运动（离散模拟）", pad.l, 20);
+      }
+
+      /* ---------- Quant: multi stock random walks ---------- */
+      let quantState = { t: 0, paths: [], finals: [], maxSteps: 250, n: 40, start: 100 };
+
+      function resetQuant() {
+        quantState.maxSteps = parseInt(stepsEl.value, 10) || 250;
+        quantState.n = parseInt(pathsEl.value, 10) || 40;
+        quantState.t = 0;
+        quantState.start = 100;
+        quantState.paths = [];
+        for (let i = 0; i < quantState.n; i++) {
+          quantState.paths.push([quantState.start]);
+        }
+        quantState.finals = [];
+        document.getElementById("quant-n").textContent = quantState.n;
+        updateQuantStats();
+      }
+
+      function stepQuant() {
+        if (quantState.t >= quantState.maxSteps) return false;
+        const vol = 0.02;
+        for (let i = 0; i < quantState.paths.length; i++) {
+          const p = quantState.paths[i];
+          const r = randn() * vol;
+          p.push(p[p.length - 1] * (1 + r));
+        }
+        quantState.t++;
+        updateQuantStats();
+        return quantState.t < quantState.maxSteps;
+      }
+
+      function updateQuantStats() {
+        document.getElementById("quant-step").textContent = quantState.t;
+        if (quantState.t === 0) {
+          document.getElementById("quant-mean").textContent = "—";
+          document.getElementById("quant-std").textContent = "—";
+        } else {
+          const ends = quantState.paths.map((p) => p[p.length - 1]);
+          const mean = ends.reduce((a, b) => a + b, 0) / ends.length;
+          const std = Math.sqrt(ends.reduce((s, v) => s + (v - mean) ** 2, 0) / ends.length);
+          document.getElementById("quant-mean").textContent = mean.toFixed(1);
+          document.getElementById("quant-std").textContent = std.toFixed(1);
+        }
+        progressEl.style.width = (100 * quantState.t / quantState.maxSteps) + "%";
+      }
+
+      function drawQuant() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.fillStyle = "#0c0f14";
+        ctx.fillRect(0, 0, w, h);
+
+        const split = 0.62;
+        const leftW = w * split - 12;
+        const rightX = w * split + 12;
+        const rightW = w - rightX - 16;
+        const pad = { t: 32, b: 40, l: 44, r: 12 };
+        const plotH = h - pad.t - pad.b;
+
+        let pMin = quantState.start * 0.5;
+        let pMax = quantState.start * 1.5;
+        for (const path of quantState.paths) {
+          for (const v of path) {
+            pMin = Math.min(pMin, v);
+            pMax = Math.max(pMax, v);
+          }
+        }
+        const margin = 0.08 * (pMax - pMin);
+        pMin -= margin;
+        pMax += margin;
+
+        const tMax = quantState.maxSteps;
+        const xL = (ti) => pad.l + (ti / tMax) * (leftW - pad.l - pad.r);
+        const yL = (val) => pad.t + plotH - ((val - pMin) / (pMax - pMin)) * plotH;
+
+        ctx.fillStyle = "#e8ecf4";
+        ctx.font = "600 12px IBM Plex Sans, sans-serif";
+        ctx.fillText("虚拟股票随机游走路径", pad.l, 18);
+
+        ctx.strokeStyle = "#f07178";
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(pad.l, yL(quantState.start));
+        ctx.lineTo(leftW - pad.r, yL(quantState.start));
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        const colors = quantState.paths.map((_, i) => {
+          const hue = 200 + (i / quantState.n) * 40;
+          return `hsla(${hue}, 70%, 55%, 0.35)`;
+        });
+
+        quantState.paths.forEach((path, i) => {
+          if (path.length < 2) return;
+          ctx.strokeStyle = colors[i];
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(xL(0), yL(path[0]));
+          for (let j = 1; j < path.length; j++) {
+            ctx.lineTo(xL(j), yL(path[j]));
+          }
+          ctx.stroke();
+        });
+
+        ctx.fillStyle = "#8b95a8";
+        ctx.font = "10px IBM Plex Sans, sans-serif";
+        ctx.fillText("价格", 6, pad.t + 10);
+        ctx.fillText("交易日", leftW / 2 - 20, h - 12);
+
+        ctx.fillStyle = "#e8ecf4";
+        ctx.font = "600 12px IBM Plex Sans, sans-serif";
+        ctx.fillText("终点价格分布", rightX, 18);
+
+        const finals = quantState.paths.map((p) => p[p.length - 1]);
+        const bins = 14;
+        const histMin = pMin;
+        const histMax = pMax;
+        const binW = (histMax - histMin) / bins;
+        const counts = new Array(bins).fill(0);
+        finals.forEach((v) => {
+          let b = Math.floor((v - histMin) / binW);
+          if (b >= bins) b = bins - 1;
+          if (b < 0) b = 0;
+          counts[b]++;
+        });
+        const maxC = Math.max(...counts, 1);
+
+        const barAreaH = plotH;
+        const barW = (rightW - 20) / bins;
+
+        for (let b = 0; b < bins; b++) {
+          const bh = (counts[b] / maxC) * barAreaH * 0.9;
+          const bx = rightX + b * barW + 2;
+          const by = pad.t + barAreaH - bh;
+          ctx.fillStyle = "rgba(240, 180, 41, 0.75)";
+          ctx.fillRect(bx, by, barW - 4, bh);
+        }
+
+        const refX = rightX + ((quantState.start - histMin) / (histMax - histMin)) * (rightW - 20);
+        ctx.strokeStyle = "#f07178";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(refX, pad.t);
+        ctx.lineTo(refX, pad.t + barAreaH);
+        ctx.stroke();
+
+        ctx.fillStyle = "#8b95a8";
+        ctx.font="10px IBM Plex Sans, sans-serif";
+        ctx.fillText("频数", rightX - 2, pad.t + 8);
+      }
+
+      function randn() {
+        let u = 0, v = 0;
+        while (u === 0) u = Math.random();
+        while (v === 0) v = Math.random();
+        return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+      }
+
+      function draw() {
+        if (mode === "math") drawMath();
+        else drawQuant();
+      }
+
+      function tick(ts) {
+        if (!playing) return;
+        if (!lastTs) lastTs = ts;
+        const interval = 1000 / parseInt(speedEl.value, 10);
+        accum += ts - lastTs;
+        lastTs = ts;
+        while (accum >= interval) {
+          accum -= interval;
+          const cont = mode === "math" ? stepMath() : stepQuant();
+          if (!cont) {
+            playing = false;
+            document.getElementById("btn-play").textContent = "播放";
+            break;
+          }
+        }
+        draw();
+        if (playing) frameId = requestAnimationFrame(tick);
+      }
+
+      function setMode(m) {
+        mode = m;
+        playing = false;
+        accum = 0;
+        lastTs = 0;
+        if (frameId) cancelAnimationFrame(frameId);
+        document.getElementById("btn-play").textContent = "播放";
+
+        tabMath.classList.toggle("active-math", m === "math");
+        tabQuant.classList.toggle("active-quant", m === "quant");
+        tabMath.setAttribute("aria-selected", m === "math");
+        tabQuant.setAttribute("aria-selected", m === "quant");
+
+        sidebarMath.classList.toggle("hidden", m !== "math");
+        sidebarQuant.classList.toggle("hidden", m !== "quant");
+        legendMath.classList.toggle("hidden", m !== "math");
+        legendQuant.classList.toggle("hidden", m !== "quant");
+        ctrlPaths.classList.toggle("hidden", m === "math");
+
+        if (m === "math") resetMath();
+        else resetQuant();
+        draw();
+      }
+
+      document.getElementById("btn-play").addEventListener("click", () => {
+        if (playing) return;
+        playing = true;
+        lastTs = 0;
+        accum = 0;
+        document.getElementById("btn-play").textContent = "播放中…";
+        frameId = requestAnimationFrame(tick);
+      });
+
+      document.getElementById("btn-pause").addEventListener("click", () => {
+        playing = false;
+        document.getElementById("btn-play").textContent = "播放";
+        if (frameId) cancelAnimationFrame(frameId);
+      });
+
+      document.getElementById("btn-step").addEventListener("click", () => {
+        playing = false;
+        if (mode === "math") stepMath();
+        else stepQuant();
+        draw();
+      });
+
+      document.getElementById("btn-reset").addEventListener("click", () => {
+        playing = false;
+        document.getElementById("btn-play").textContent = "播放";
+        if (mode === "math") resetMath();
+        else resetQuant();
+        draw();
+      });
+
+      tabMath.addEventListener("click", () => setMode("math"));
+      tabQuant.addEventListener("click", () => setMode("quant"));
+
+      stepsEl.addEventListener("change", () => {
+        if (mode === "math") resetMath();
+        else resetQuant();
+        draw();
+      });
+
+      pathsEl.addEventListener("change", () => {
+        if (mode === "quant") {
+          resetQuant();
+          draw();
+        }
+      });
+
+      setMode("math");
+      resize();
+    })();
+  </script>
+</body>
+</html>

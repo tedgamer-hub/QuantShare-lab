@@ -1,0 +1,8 @@
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌──────────────┐    ┌─────────────┐
+│  获取数据    │ →  │  数据处理    │ →  │  分析建模    │ →  │  策略回测     │ →  │  可视化展示  │
+│             │    │             │    │             │    │              │    │             │
+│  yfinance   │    │  pandas     │    │  numpy      │    │  backtrader  │    │ matplotlib  │
+│  akshare    │    │  polars     │    │  scipy      │    │  zipline     │    │ plotly      │
+│  tushare    │    │             │    │  statsmodels│    │  vnpy        │    │ seaborn     │
+│  ccxt(加密) │    │             │    │  sklearn    │    │              │    │ pyecharts   │
+└─────────────┘    └─────────────┘    └─────────────┘    └──────────────┘    └─────────────┘

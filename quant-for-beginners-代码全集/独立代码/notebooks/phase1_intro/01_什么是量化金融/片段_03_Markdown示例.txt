@@ -1,0 +1,14 @@
+#include <iostream>
+#include <vector>
+#include <numeric>
+
+std::vector<double> moving_average(const std::vector<double>& prices, int window) {
+    std::vector<double> result;
+    for (size_t i = window - 1; i < prices.size(); ++i) {
+        double sum = std::accumulate(prices.begin() + i - window + 1, 
+                                      prices.begin() + i + 1, 0.0);
+        result.push_back(sum / window);
+    }
+    return result;
+}
+// 还需要手动读取数据、处理文件格式...大约 50+ 行代码

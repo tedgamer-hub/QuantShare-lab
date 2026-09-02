@@ -1,0 +1,11 @@
+quant-for-beginners/
+├── notebooks/
+│   ├── phase1_intro/         # 第一期（第 1～4 章）
+│   └── phase2_intro/         # 第二期（第 5～8 章）
+├── assets/
+│   ├── images/               # README 与传播用配图
+│   └── interactive/          # 独立 HTML 交互演示
+├── scripts/                  # 配图生成、Notebook 维护脚本
+├── docs/ROADMAP.md           # 详细路线图
+├── src/                      # 可复用模块（建设中）
+└── requirements.txt
