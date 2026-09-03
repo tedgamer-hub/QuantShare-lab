@@ -93,5 +93,4 @@ Yahoo Finance 对 A 股和中国公募基金的覆盖不应被假定为优于本
 
 ## Contributors
 
-- [xtraid](https://github.com/xtraid)
-- [alibizho](https://github.com/alibizho)
+- [mobraid](https://github.com/mobraid)
